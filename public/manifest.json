@@ -1,0 +1,18 @@
+{
+  "name": "Pixel Memory — Edição Pokémon",
+  "short_name": "PixelMemory",
+  "description": "Jogo da memória 8-bit com sprites de Pokémon em pixel art, modos Clássico e Time Attack, e Pokédex colecionável.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#E6E1D6",
+  "theme_color": "#D63C3C",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

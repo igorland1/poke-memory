@@ -1,5 +1,5 @@
 // Componente Board: Tabuleiro com borda grossa de 4px, cantos retos e sombra dura
-import React from 'react';
+import React, { memo } from 'react';
 import { CardItem } from '../types/game';
 import { Card } from './Card';
 
@@ -9,7 +9,7 @@ interface BoardProps {
   disabled?: boolean;
 }
 
-export const Board: React.FC<BoardProps> = ({ cards, onCardClick, disabled = false }) => {
+export const Board = memo(function Board({ cards, onCardClick, disabled = false }: BoardProps) {
   return (
     <section
       role="region"
@@ -29,4 +29,4 @@ export const Board: React.FC<BoardProps> = ({ cards, onCardClick, disabled = fal
       </div>
     </section>
   );
-};
+});

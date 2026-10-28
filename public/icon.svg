@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#E6E1D6"/>
+  <!-- Borda externa 8-bit -->
+  <rect x="32" y="32" width="448" height="448" fill="#1F1D2B"/>
+  
+  <!-- Círculo externo da Pokébola -->
+  <circle cx="256" cy="256" r="192" fill="#1F1D2B"/>
+  
+  <!-- Metade inferior branca -->
+  <path d="M 64 256 A 192 192 0 0 0 448 256 Z" fill="#F8F8F0"/>
+  
+  <!-- Metade superior vermelha -->
+  <path d="M 64 256 A 192 192 0 0 1 448 256 Z" fill="#D63C3C"/>
+  
+  <!-- Faixa preta central -->
+  <rect x="64" y="236" width="384" height="40" fill="#1F1D2B"/>
+  
+  <!-- Botão central externo -->
+  <circle cx="256" cy="256" r="64" fill="#1F1D2B"/>
+  <!-- Botão central branco -->
+  <circle cx="256" cy="256" r="44" fill="#F8F8F0"/>
+  <!-- Miolo do botão central -->
+  <circle cx="256" cy="256" r="24" fill="#1F1D2B"/>
+  <!-- Brilho 8-bit -->
+  <rect x="140" y="120" width="40" height="40" fill="#F8F8F0" opacity="0.4"/>
+</svg>

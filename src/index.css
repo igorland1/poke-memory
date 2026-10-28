@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 @import "tailwindcss";
 
 /* ==========================================================================
@@ -12,20 +11,21 @@ body {
 }
 
 /* ==========================================================================
-   Animação 3D de Virar a Carta com Steps() (Sensação autêntica de 8-Bit)
+   Animação 3D de Virar a Carta
    ========================================================================== */
 
 .card-perspective {
   perspective: 800px;
 }
 
-/* Rotação em 5 passos discretos (quadro a quadro), simulando animação clássica de Game Boy */
+/* Rotação fluida acelerada por hardware */
 .card-inner {
   position: relative;
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
-  transition: transform 0.35s steps(5);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
 }
 
 .card-inner.is-flipped {
@@ -51,10 +51,62 @@ body {
 }
 
 /* ==========================================================================
+   Feedbacks Visuais: Acerto (Pulse/Pop) e Erro (Shake 8-bit)
+   ========================================================================== */
+@keyframes retro-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+
+@keyframes retro-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.animate-card-shake {
+  animation: retro-shake 0.45s ease-in-out;
+}
+
+.animate-card-pop {
+  animation: retro-pop 0.35s ease-out;
+}
+
+/* Confetes pixel art caindo */
+@keyframes pixel-fall {
+  0% {
+    transform: translateY(-20px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.pixel-confetti {
+  position: fixed;
+  top: -20px;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  z-index: 60;
+  animation: pixel-fall linear forwards;
+}
+
+/* ==========================================================================
    Acessibilidade: Suporte a prefers-reduced-motion
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
   .card-inner {
     transition: none !important;
+  }
+  .animate-card-shake,
+  .animate-card-pop,
+  .pixel-confetti {
+    animation: none !important;
   }
 }

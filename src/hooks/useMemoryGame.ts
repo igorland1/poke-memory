@@ -1,162 +1,227 @@
-// Hook useMemoryGame: Corrigido com gameId e cardsRef para evitar re-execução indevida do pré-carregamento
+// Hook useMemoryGame: Suporte a modos de jogo (Classic / Time Attack), 3 Gerações e Sistema de Combos
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { CardItem, Difficulty, BestScore, BestScoresRecord } from '../types/game';
-import { generateDeckByDifficulty, DIFFICULTY_CONFIGS } from '../data/cards';
-import { loadBestScores, saveBestScoreIfBetter } from '../utils/storage';
+import {
+  CardItem,
+  Difficulty,
+  GameMode,
+  Generation,
+  BestScore,
+  BestScoresRecord,
+  PokedexRecord,
+} from '../types/game';
+import { generateDeck, DIFFICULTY_CONFIGS } from '../data/cards';
+import {
+  loadBestScores,
+  saveBestScoreIfBetter,
+  getScoreKey,
+  loadPokedex,
+  registerPokemonCapture,
+} from '../utils/storage';
+import { sounds } from '../utils/sound';
 
-export function useMemoryGame(initialDifficulty: Difficulty = 'medium') {
-  // 1. Dificuldade atual
+export function useMemoryGame(
+  initialDifficulty: Difficulty = 'medium',
+  initialMode: GameMode = 'classic',
+  initialGeneration: Generation = 'kanto'
+) {
+  // 1. Configurações da partida
   const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty);
+  const [gameMode, setGameMode] = useState<GameMode>(initialMode);
+  const [generation, setGeneration] = useState<Generation>(initialGeneration);
 
-  // 2. Identificador único de cada partida iniciada (usado para disparar o pré-carregamento)
+  // 2. Identificador único da partida
   const [gameId, setGameId] = useState<number>(0);
 
   // 3. Cartas do tabuleiro
   const [cards, setCards] = useState<CardItem[]>(() =>
-    generateDeckByDifficulty(initialDifficulty)
+    generateDeck(initialDifficulty, initialGeneration)
   );
 
-  // Ref para ler as cartas no pré-carregamento sem precisar colocar 'cards' no array de dependências
   const cardsRef = useRef<CardItem[]>(cards);
   cardsRef.current = cards;
 
-  // 4. Estado de pré-carregamento de imagens (só fica true no início de uma nova partida)
+  // 4. Estados de carregamento e cartas selecionadas
   const [isPreloading, setIsPreloading] = useState<boolean>(true);
-
-  // 5. Cartas selecionadas na rodada
   const [firstChoice, setFirstChoice] = useState<CardItem | null>(null);
   const [secondChoice, setSecondChoice] = useState<CardItem | null>(null);
-
-  // 6. Trava do sistema durante a comparação
   const [isChecking, setIsChecking] = useState<boolean>(false);
 
-  // 7. Placar
+  // 5. Placar e Métricas
   const [moves, setMoves] = useState<number>(0);
   const [matches, setMatches] = useState<number>(0);
+  const [score, setScore] = useState<number>(0);
+  const [combo, setCombo] = useState<number>(0);
+  const [maxCombo, setMaxCombo] = useState<number>(0);
 
-  // 8. Cronômetro
+  // 6. Cronômetro / Tempo
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
-  const [timeSeconds, setTimeSeconds] = useState<number>(0);
+  const [timeSeconds, setTimeSeconds] = useState<number>(() =>
+    initialMode === 'timeAttack'
+      ? DIFFICULTY_CONFIGS[initialDifficulty].timeLimitSeconds
+      : 0
+  );
+  const [isTimeOut, setIsTimeOut] = useState<boolean>(false);
 
-  // 9. Recordes e persistência
+  // 7. Recordes e Pokédex
   const [bestScores, setBestScores] = useState<BestScoresRecord>(() => loadBestScores());
+  const [pokedex, setPokedex] = useState<PokedexRecord>(() => loadPokedex());
   const [isNewRecord, setIsNewRecord] = useState<boolean>(false);
+  const [isMuted, setIsMuted] = useState<boolean>(() => sounds.getMuted());
 
-  // Ref de controle para salvar o recorde uma única vez por vitória
   const hasSavedRecordRef = useRef<boolean>(false);
 
-  // Total de pares da dificuldade selecionada
+  // Total de pares
   const totalPairs = DIFFICULTY_CONFIGS[difficulty].pairsCount;
 
-  // Derivação pura do fim do jogo
-  const isGameOver = matches === totalPairs && totalPairs > 0;
+  // Fim de jogo: Vitória ou Derrota por tempo
+  const isWon = matches === totalPairs && totalPairs > 0;
+  const isGameOver = isWon || isTimeOut;
 
-  // Recorde atual do nível selecionado
-  const currentBestScore: BestScore | undefined = bestScores[difficulty];
+  // Chave do recorde atual
+  const currentKey = getScoreKey(gameMode, generation, difficulty);
+  const currentBestScore: BestScore | undefined = bestScores[currentKey];
 
-  // Inicia ou reinicia uma partida
-  const startNewGame = useCallback((targetDifficulty?: Difficulty) => {
-    const nextDiff = targetDifficulty ?? difficulty;
-    const newDeck = generateDeckByDifficulty(nextDiff);
+  // Iniciar / Reiniciar partida
+  const startNewGame = useCallback(
+    (targetDiff?: Difficulty, targetMode?: GameMode, targetGen?: Generation) => {
+      const nextDiff = targetDiff ?? difficulty;
+      const nextMode = targetMode ?? gameMode;
+      const nextGen = targetGen ?? generation;
 
-    // Atualiza a ref e o estado com o novo baralho
-    cardsRef.current = newDeck;
-    setDifficulty(nextDiff);
-    setCards(newDeck);
+      const newDeck = generateDeck(nextDiff, nextGen);
+      cardsRef.current = newDeck;
 
-    // Incrementa gameId: este é o ÚNICO gatilho que ativa o pré-carregamento
-    setGameId((prev) => prev + 1);
+      setDifficulty(nextDiff);
+      setGameMode(nextMode);
+      setGeneration(nextGen);
+      setCards(newDeck);
 
-    setFirstChoice(null);
-    setSecondChoice(null);
-    setIsChecking(false);
-    setMoves(0);
-    setMatches(0);
-    setTimeSeconds(0);
-    setIsTimerRunning(false);
-    setIsNewRecord(false);
-    hasSavedRecordRef.current = false;
-    setBestScores(loadBestScores());
-  }, [difficulty]);
+      // Gatilho de pré-carregamento
+      setGameId((prev) => prev + 1);
 
-  // EFEITO DE PRÉ-CARREGAMENTO: Depende EXCLUSIVAMENTE de [gameId]
-  // Não depende de 'cards', garantindo que virar cartas NUNCA reative o loading!
+      setFirstChoice(null);
+      setSecondChoice(null);
+      setIsChecking(false);
+      setMoves(0);
+      setMatches(0);
+      setScore(0);
+      setCombo(0);
+      setMaxCombo(0);
+      setIsTimeOut(false);
+      setTimeSeconds(
+        nextMode === 'timeAttack'
+          ? DIFFICULTY_CONFIGS[nextDiff].timeLimitSeconds
+          : 0
+      );
+      setIsTimerRunning(false);
+      setIsNewRecord(false);
+      hasSavedRecordRef.current = false;
+      setBestScores(loadBestScores());
+    },
+    [difficulty, gameMode, generation]
+  );
+
+  // Efeito de Pré-carregamento das imagens
   useEffect(() => {
     let isCancelled = false;
     setIsPreloading(true);
 
-    // Lê as cartas da partida atual através da ref estável
     const currentCards = cardsRef.current;
     const uniqueSpriteUrls = Array.from(new Set(currentCards.map((card) => card.spriteUrl)));
 
-    // Timeout de segurança estrito de 5 segundos
     const safetyTimeoutId = window.setTimeout(() => {
       if (!isCancelled) {
         setIsPreloading(false);
       }
-    }, 5000);
+    }, 4500);
 
-    // Pré-carrega cada imagem usando new Image()
     const loadPromises = uniqueSpriteUrls.map((url) => {
       return new Promise<void>((resolve) => {
         const img = new Image();
         img.src = url;
         img.onload = () => resolve();
-        img.onerror = () => resolve(); // Falha graciosa (carta usará fallback de texto)
+        img.onerror = () => resolve();
       });
     });
 
-    // Quando todas as imagens terminarem
     Promise.all(loadPromises).then(() => {
       if (!isCancelled) {
         window.clearTimeout(safetyTimeoutId);
         setIsPreloading(false);
+
+        // Se for o modo MEMORY FLASH ("Olho de Águia"): revela todas as cartas por 2.5 segundos!
+        if (gameMode === 'memoryFlash') {
+          setCards((prev) => prev.map((c) => ({ ...c, isFlipped: true })));
+          setIsChecking(true);
+
+          window.setTimeout(() => {
+            if (!isCancelled) {
+              setCards((prev) => prev.map((c) => ({ ...c, isFlipped: false })));
+              setIsChecking(false);
+            }
+          }, 2400);
+        }
       }
     });
 
-    // Limpeza mandatória contra memory leak
     return () => {
       isCancelled = true;
       window.clearTimeout(safetyTimeoutId);
     };
-  }, [gameId]); // <--- Dependência cirúrgica: só roda ao iniciar nova partida!
+  }, [gameId]);
 
   // Manipulador de clique nas cartas
-  const handleCardClick = (clickedCard: CardItem) => {
-    if (isPreloading || isChecking) return;
-    if (firstChoice !== null && secondChoice !== null) return;
-    if (clickedCard.isFlipped || clickedCard.isMatched) return;
-    if (firstChoice && firstChoice.id === clickedCard.id) return;
+  const handleCardClick = useCallback(
+    (clickedCard: CardItem) => {
+      if (isPreloading || isChecking || isGameOver) return;
+      if (firstChoice !== null && secondChoice !== null) return;
+      if (clickedCard.isFlipped || clickedCard.isMatched) return;
+      if (firstChoice && firstChoice.id === clickedCard.id) return;
 
-    if (!isTimerRunning && !isGameOver) {
-      setIsTimerRunning(true);
-    }
+      if (!isTimerRunning && !isGameOver) {
+        setIsTimerRunning(true);
+      }
 
-    setCards((prevCards) =>
-      prevCards.map((card) =>
-        card.id === clickedCard.id ? { ...card, isFlipped: true } : card
-      )
-    );
+      sounds.playFlip();
 
-    if (!firstChoice) {
-      setFirstChoice(clickedCard);
-    } else {
-      setSecondChoice(clickedCard);
-    }
-  };
+      setCards((prevCards) =>
+        prevCards.map((card) =>
+          card.id === clickedCard.id ? { ...card, isFlipped: true } : card
+        )
+      );
 
-  // Efeito do Timer
+      if (!firstChoice) {
+        setFirstChoice(clickedCard);
+      } else {
+        setSecondChoice(clickedCard);
+      }
+    },
+    [isPreloading, isChecking, isGameOver, firstChoice, secondChoice, isTimerRunning]
+  );
+
+  // Efeito do Timer (Progressivo no Classic, Regressivo no Time Attack)
   useEffect(() => {
     if (!isTimerRunning || isGameOver) return;
 
     const intervalId = window.setInterval(() => {
-      setTimeSeconds((prev) => prev + 1);
+      setTimeSeconds((prev) => {
+        if (gameMode === 'timeAttack') {
+          if (prev <= 1) {
+            setIsTimeOut(true);
+            setIsTimerRunning(false);
+            sounds.playDefeat();
+            return 0;
+          }
+          return prev - 1;
+        }
+        return prev + 1;
+      });
     }, 1000);
 
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [isTimerRunning, isGameOver]);
+  }, [isTimerRunning, isGameOver, gameMode]);
 
   // Efeito de Comparação das Cartas
   useEffect(() => {
@@ -165,11 +230,47 @@ export function useMemoryGame(initialDifficulty: Difficulty = 'medium') {
     setIsChecking(true);
     setMoves((prev) => prev + 1);
 
-    if (firstChoice.pokemonId === secondChoice.pokemonId) {
+    // É par se tiverem o mesmo pokemonId OU se uma das cartas for o Ditto (Wildcard)!
+    const isMatch =
+      firstChoice.pokemonId === secondChoice.pokemonId ||
+      firstChoice.isWildcard ||
+      secondChoice.isWildcard;
+
+    if (isMatch) {
+      const nextCombo = combo + 1;
+      setCombo(nextCombo);
+      setMaxCombo((prev) => Math.max(prev, nextCombo));
+
+      if (nextCombo > 1) {
+        sounds.playCombo(nextCombo);
+      } else {
+        sounds.playMatch();
+      }
+
+      // Pontuação: 100 base + bônus combo multiplicador (Ditto dá 150 extra!)
+      const wildcardBonus = firstChoice.isWildcard || secondChoice.isWildcard ? 150 : 0;
+      const gainedScore = 100 * nextCombo + wildcardBonus;
+      setScore((prev) => prev + gainedScore);
+
+      // Registra captura na Pokédex (se for wildcard, captura a outra carta)
+      const targetCard = firstChoice.isWildcard ? secondChoice : firstChoice;
+      const captureResult = registerPokemonCapture(
+        targetCard.pokemonId,
+        targetCard.name,
+        targetCard.type,
+        generation
+      );
+      setPokedex(captureResult.pokedex);
+
+      // Bônus no Time Attack: +4 segundos ao acertar
+      if (gameMode === 'timeAttack') {
+        setTimeSeconds((prev) => prev + 4);
+      }
+
       setCards((prevCards) =>
         prevCards.map((card) =>
           card.id === firstChoice.id || card.id === secondChoice.id
-            ? { ...card, isMatched: true, isFlipped: true }
+            ? { ...card, isMatched: true, isFlipped: true, isJustMatched: true }
             : card
         )
       );
@@ -178,32 +279,51 @@ export function useMemoryGame(initialDifficulty: Difficulty = 'medium') {
       setSecondChoice(null);
       setIsChecking(false);
     } else {
+      sounds.playMismatch();
+      setCombo(0); // Quebra o combo
+
+      // Penalidade de 25 pontos (sem deixar pontuação negativa)
+      setScore((prev) => Math.max(0, prev - 25));
+
+      setCards((prevCards) =>
+        prevCards.map((card) =>
+          card.id === firstChoice.id || card.id === secondChoice.id
+            ? { ...card, isWrong: true }
+            : card
+        )
+      );
+
       const timer = setTimeout(() => {
         setCards((prevCards) =>
           prevCards.map((card) =>
             card.id === firstChoice.id || card.id === secondChoice.id
-              ? { ...card, isFlipped: false }
+              ? { ...card, isFlipped: false, isWrong: false }
               : card
           )
         );
         setFirstChoice(null);
         setSecondChoice(null);
         setIsChecking(false);
-      }, 1000);
+      }, 850);
 
       return () => clearTimeout(timer);
     }
-  }, [firstChoice, secondChoice]);
+  }, [firstChoice, secondChoice, combo, gameMode]);
 
   // Efeito de Fim de Jogo e Salvamento de Recorde
   useEffect(() => {
-    if (isGameOver && !hasSavedRecordRef.current) {
+    if (isWon && !hasSavedRecordRef.current) {
       hasSavedRecordRef.current = true;
       setIsTimerRunning(false);
+      sounds.playVictory();
 
-      const result = saveBestScoreIfBetter(difficulty, {
+      // Bônus final de tempo
+      const finalScore = score + (gameMode === 'timeAttack' ? timeSeconds * 20 : Math.max(0, 500 - timeSeconds * 5));
+
+      const result = saveBestScoreIfBetter(currentKey, {
         moves,
         timeSeconds,
+        score: finalScore,
       });
 
       if (result.recordUpdated) {
@@ -211,23 +331,40 @@ export function useMemoryGame(initialDifficulty: Difficulty = 'medium') {
         setBestScores(result.scores);
       }
     }
-  }, [isGameOver, difficulty, moves, timeSeconds]);
+  }, [isWon, score, gameMode, timeSeconds, moves, currentKey]);
+
+  const toggleSound = useCallback(() => {
+    const nextState = sounds.toggleMute();
+    setIsMuted(nextState);
+  }, []);
 
   return {
     cards,
     moves,
     matches,
     totalPairs,
+    score,
+    combo,
+    maxCombo,
+    isWon,
+    isTimeOut,
     isGameOver,
     isChecking,
     isPreloading,
     difficulty,
+    gameMode,
+    generation,
     timeSeconds,
     bestScores,
     currentBestScore,
     isNewRecord,
+    pokedex,
+    isMuted,
+    toggleSound,
     handleCardClick,
     startNewGame,
     setDifficulty,
+    setGameMode,
+    setGeneration,
   };
 }
