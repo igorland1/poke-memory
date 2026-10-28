@@ -1,0 +1,6 @@
+{
+  "name": "Pixel Memory — Edição Kanto",
+  "description": "Jogo da memória 8-bit com sprites de Pokémon da 1ª Geração em pixel art, construído com React e Tailwind CSS.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
