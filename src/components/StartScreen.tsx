@@ -1,8 +1,9 @@
-// Componente StartScreen: Seleção de Geração, Modo de Jogo e Dificuldade
+// Componente StartScreen: Seleção de Geração, Modo de Jogo e Dificuldade com i18n
 import React from 'react';
 import { Difficulty, GameMode, Generation, BestScoresRecord } from '../types/game';
 import { DIFFICULTY_CONFIGS, GENERATION_CONFIGS } from '../data/cards';
 import { formatTime, getScoreKey } from '../utils/storage';
+import { Language, DICTIONARY } from '../utils/i18n';
 
 interface StartScreenProps {
   selectedDifficulty: Difficulty;
@@ -15,6 +16,7 @@ interface StartScreenProps {
   onOpenPokedex: () => void;
   bestScores: BestScoresRecord;
   capturedCount: number;
+  language: Language;
 }
 
 export const StartScreen: React.FC<StartScreenProps> = ({
@@ -28,19 +30,27 @@ export const StartScreen: React.FC<StartScreenProps> = ({
   onOpenPokedex,
   bestScores,
   capturedCount,
+  language,
 }) => {
+  const t = DICTIONARY[language];
   const generations: Generation[] = ['kanto', 'johto', 'hoenn'];
   const difficulties: Difficulty[] = ['easy', 'medium', 'hard'];
 
   const currentRecordKey = getScoreKey(selectedMode, selectedGeneration, selectedDifficulty);
   const currentRecord = bestScores[currentRecordKey];
 
+  const diffLabels: Record<Difficulty, { label: string; desc: string }> = {
+    easy: { label: t.diffEasy, desc: t.diffEasyDesc },
+    medium: { label: t.diffMedium, desc: t.diffMediumDesc },
+    hard: { label: t.diffHard, desc: t.diffHardDesc },
+  };
+
   return (
     <div className="w-full max-w-sm sm:max-w-md mx-auto bg-[#F8F8F0] p-3.5 sm:p-5 border-4 border-[#1F1D2B] shadow-[4px_4px_0px_0px_#1F1D2B] rounded-none flex flex-col gap-3 sm:gap-4 text-center">
       {/* 1. Seleção de Geração (Kanto, Johto, Hoenn) */}
       <div>
         <div className="text-[8px] font-bold uppercase text-[#1F1D2B]/70 mb-1.5 flex items-center justify-center gap-1">
-          <span>REGIÃO / GERAÇÃO</span>
+          <span>{t.regionLabel}</span>
         </div>
         <div className="grid grid-cols-3 gap-1.5">
           {generations.map((genKey) => {
@@ -69,10 +79,10 @@ export const StartScreen: React.FC<StartScreenProps> = ({
         </div>
       </div>
 
-      {/* 2. Modo de Jogo (Clássico vs Time Attack vs Memory Flash) */}
+      {/* 2. Modo de Jogo */}
       <div>
         <div className="text-[8px] font-bold uppercase text-[#1F1D2B]/70 mb-1.5 flex items-center justify-center gap-1">
-          <span>MODO DE JOGO</span>
+          <span>{t.gameModeLabel}</span>
         </div>
         <div className="grid grid-cols-3 gap-1.5">
           <button
@@ -87,8 +97,8 @@ export const StartScreen: React.FC<StartScreenProps> = ({
               }
             `}
           >
-            <span>CLÁSSICO</span>
-            <span className="text-[6.5px] opacity-85 mt-0.5">Sem pressa</span>
+            <span>{t.classicMode}</span>
+            <span className="text-[6.5px] opacity-85 mt-0.5">{t.classicDesc}</span>
           </button>
 
           <button
@@ -104,10 +114,10 @@ export const StartScreen: React.FC<StartScreenProps> = ({
             `}
           >
             <div className="flex items-center gap-0.5">
-              <span>TEMPO</span>
+              <span>{t.timeAttackMode}</span>
               <span className="text-[7px]">⚡</span>
             </div>
-            <span className="text-[6.5px] opacity-85 mt-0.5">Corrida</span>
+            <span className="text-[6.5px] opacity-85 mt-0.5">{t.timeAttackDesc}</span>
           </button>
 
           <button
@@ -123,10 +133,10 @@ export const StartScreen: React.FC<StartScreenProps> = ({
             `}
           >
             <div className="flex items-center gap-0.5">
-              <span>FLASH</span>
+              <span>{t.memoryFlashMode}</span>
               <span className="text-[7px]">👁️</span>
             </div>
-            <span className="text-[6.5px] opacity-85 mt-0.5">Espia 2s</span>
+            <span className="text-[6.5px] opacity-85 mt-0.5">{t.memoryFlashDesc}</span>
           </button>
         </div>
       </div>
@@ -134,12 +144,13 @@ export const StartScreen: React.FC<StartScreenProps> = ({
       {/* 3. Seleção de Dificuldade */}
       <div>
         <div className="text-[8px] font-bold uppercase text-[#1F1D2B]/70 mb-1.5 flex items-center justify-center gap-1">
-          <span>DIFICULDADE</span>
+          <span>{t.difficultyLabel}</span>
         </div>
         <div className="flex flex-col gap-2">
           {difficulties.map((diffKey) => {
             const config = DIFFICULTY_CONFIGS[diffKey];
             const isSelected = selectedDifficulty === diffKey;
+            const diffTranslation = diffLabels[diffKey];
 
             return (
               <button
@@ -159,10 +170,10 @@ export const StartScreen: React.FC<StartScreenProps> = ({
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-[10px] sm:text-xs text-[#1F1D2B] uppercase">
-                      {config.label}
+                      {diffTranslation.label}
                     </span>
                     <span className="text-[7px] uppercase font-bold px-1.5 py-0.5 bg-[#1F1D2B] text-[#F8F8F0]">
-                      {config.pairsCount} PARES
+                      {config.pairsCount} {t.pairsCount}
                     </span>
                     {selectedMode === 'timeAttack' && (
                       <span className="text-[7px] uppercase font-bold px-1 py-0.5 bg-[#D63C3C] text-[#F8F8F0]">
@@ -171,7 +182,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
                     )}
                   </div>
                   <span className="text-[7px] sm:text-[8px] text-[#1F1D2B]/70 mt-0.5 uppercase">
-                    {config.description}
+                    {diffTranslation.desc}
                   </span>
                 </div>
 
@@ -189,15 +200,15 @@ export const StartScreen: React.FC<StartScreenProps> = ({
         </div>
       </div>
 
-      {/* Recorde do modo/geração/dificuldade atual */}
+      {/* Recorde */}
       <div className="p-2 bg-[#E6E1D6] border-2 border-[#1F1D2B] text-[8px] flex items-center justify-between">
-        <span className="font-bold text-[#3B5BA9] uppercase">RECORDE ATUAL:</span>
+        <span className="font-bold text-[#3B5BA9] uppercase">{t.currentRecord}</span>
         {currentRecord ? (
           <span className="font-bold text-[#D63C3C]">
             {currentRecord.score} PTS • {currentRecord.moves}J • {formatTime(currentRecord.timeSeconds)}
           </span>
         ) : (
-          <span className="text-[#1F1D2B]/50 font-bold uppercase">NENHUM RECORD</span>
+          <span className="text-[#1F1D2B]/50 font-bold uppercase">{t.noRecord}</span>
         )}
       </div>
 
@@ -208,7 +219,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
         className="w-full min-h-[48px] px-4 py-3 bg-[#D63C3C] text-[#F8F8F0] border-4 border-[#1F1D2B] shadow-[4px_4px_0px_0px_#1F1D2B] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none font-bold text-xs uppercase flex items-center justify-center gap-2 cursor-pointer transition-transform rounded-none touch-manipulation"
       >
         <span aria-hidden="true">▶</span>
-        COMEÇAR JOGO
+        {t.startGame}
       </button>
 
       {/* Botão Abrir Pokédex Retrô */}
@@ -219,7 +230,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
       >
         <div className="flex items-center gap-1.5">
           <span aria-hidden="true">📖</span>
-          <span>ABRIR POKÉDEX</span>
+          <span>{t.openPokedex}</span>
         </div>
         <span className="bg-[#1F1D2B] text-[#F2C230] px-1.5 py-0.5 text-[7.5px]">
           {capturedCount} / 60

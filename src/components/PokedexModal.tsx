@@ -1,16 +1,19 @@
-// Componente PokedexModal: Pokédex retrô com 60 Pokémon das 3 Gerações e estatísticas de captura
+// Componente PokedexModal: Pokédex retrô com 60 Pokémon das 3 Gerações e i18n
 import React, { useState } from 'react';
 import { Generation, PokedexRecord } from '../types/game';
 import { POKEMON_BY_GENERATION, GENERATION_CONFIGS, TYPE_INFO, getPokemonSpriteUrl } from '../data/cards';
+import { Language, DICTIONARY } from '../utils/i18n';
 
 interface PokedexModalProps {
   isOpen: boolean;
   onClose: () => void;
   pokedex: PokedexRecord;
+  language: Language;
 }
 
-export const PokedexModal: React.FC<PokedexModalProps> = ({ isOpen, onClose, pokedex }) => {
+export const PokedexModal: React.FC<PokedexModalProps> = ({ isOpen, onClose, pokedex, language }) => {
   const [selectedGen, setSelectedGen] = useState<Generation>('kanto');
+  const t = DICTIONARY[language];
 
   if (!isOpen) return null;
 
@@ -34,14 +37,14 @@ export const PokedexModal: React.FC<PokedexModalProps> = ({ isOpen, onClose, pok
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded-full bg-[#3B5BA9] border-2 border-[#1F1D2B] animate-pulse" />
             <h2 id="pokedex-title" className="text-xs sm:text-sm font-bold text-[#1F1D2B] uppercase tracking-tight">
-              POKÉDEX RETRÔ
+              {t.pokedexTitle}
             </h2>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            aria-label="Fechar Pokédex"
+            aria-label="Close Pokédex"
             className="w-7 h-7 bg-[#D63C3C] text-[#F8F8F0] border-2 border-[#1F1D2B] font-bold text-xs flex items-center justify-center cursor-pointer shadow-[2px_2px_0px_0px_#1F1D2B] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
           >
             ✕
@@ -50,7 +53,7 @@ export const PokedexModal: React.FC<PokedexModalProps> = ({ isOpen, onClose, pok
 
         {/* Estatísticas Globais */}
         <div className="bg-[#1F1D2B] text-[#F8F8F0] p-2 border-2 border-[#1F1D2B] text-[8px] flex items-center justify-between">
-          <span>PROGRESSO TOTAL:</span>
+          <span>{t.totalProgress}</span>
           <span className="text-[#F2C230] font-bold">
             {totalCapturedAll} / {totalAll} ({Math.round((totalCapturedAll / totalAll) * 100)}%)
           </span>
@@ -85,9 +88,9 @@ export const PokedexModal: React.FC<PokedexModalProps> = ({ isOpen, onClose, pok
 
         {/* Sub-barra da Geração atual */}
         <div className="text-[7.5px] uppercase font-bold text-[#1F1D2B]/80 flex items-center justify-between px-1">
-          <span>CAPTURA REGIONAL:</span>
+          <span>{t.regionalCatch}</span>
           <span className="text-[#3B5BA9] font-bold">
-            {capturedInGen} DE {totalInGen} ENCONTRADOS
+            {capturedInGen} / {totalInGen} {t.foundOf}
           </span>
         </div>
 
@@ -97,6 +100,7 @@ export const PokedexModal: React.FC<PokedexModalProps> = ({ isOpen, onClose, pok
             const entry = pokedex[pokemon.id];
             const isCaptured = Boolean(entry);
             const typeVisual = TYPE_INFO[pokemon.type];
+            const translatedTypeName = t.types[pokemon.type] ?? typeVisual?.name ?? pokemon.type;
             const spriteUrl = getPokemonSpriteUrl(pokemon.id);
 
             return (
@@ -121,7 +125,7 @@ export const PokedexModal: React.FC<PokedexModalProps> = ({ isOpen, onClose, pok
                 <div className="w-10 h-10 flex items-center justify-center my-0.5">
                   <img
                     src={spriteUrl}
-                    alt={isCaptured ? pokemon.name : 'Pokémon desconhecido'}
+                    alt={isCaptured ? pokemon.name : t.unknownPokemon}
                     width={48}
                     height={48}
                     style={{ imageRendering: 'pixelated' }}
@@ -147,7 +151,7 @@ export const PokedexModal: React.FC<PokedexModalProps> = ({ isOpen, onClose, pok
                       }}
                       className="inline-block text-[5.5px] px-1 py-0.2 border border-[#1F1D2B] font-bold uppercase truncate max-w-full"
                     >
-                      {typeVisual?.badge} {typeVisual?.name}
+                      {typeVisual?.badge} {translatedTypeName}
                     </span>
                   )}
                 </div>
@@ -162,7 +166,7 @@ export const PokedexModal: React.FC<PokedexModalProps> = ({ isOpen, onClose, pok
           onClick={onClose}
           className="w-full min-h-[44px] px-3 py-2 bg-[#3B5BA9] text-[#F8F8F0] border-3 border-[#1F1D2B] shadow-[3px_3px_0px_0px_#1F1D2B] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none text-[9px] font-bold uppercase cursor-pointer"
         >
-          VOLTAR AO JOGO
+          {t.backToGame}
         </button>
       </div>
     </div>

@@ -1,7 +1,13 @@
 // Componente LoadingScreen: Exibe estado de carregamento 8-bit com Pokébola animada
 import React from 'react';
+import { Language, DICTIONARY } from '../utils/i18n';
 
-export const LoadingScreen: React.FC = () => {
+interface LoadingScreenProps {
+  language?: Language;
+}
+
+export const LoadingScreen: React.FC<LoadingScreenProps> = ({ language = 'pt' }) => {
+  const t = DICTIONARY[language];
   return (
     <div
       role="status"
@@ -27,11 +33,11 @@ export const LoadingScreen: React.FC = () => {
 
       {/* Texto de Carregamento 8-bit */}
       <h2 className="text-xs sm:text-sm font-bold text-[#1F1D2B] tracking-tight uppercase flex items-center justify-center gap-1">
-        CARREGANDO<span className="animate-pulse">...</span>
+        {t.loading}<span className="animate-pulse">...</span>
       </h2>
 
       <p className="text-[8px] sm:text-[9px] text-[#3B5BA9] font-bold mt-2 uppercase">
-        PREPARANDO SPRITES POKÉMON
+        {t.preparingSprites}
       </p>
 
       {/* Barra de carregamento pixelada retrô */}

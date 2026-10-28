@@ -1,7 +1,8 @@
-// Componente GameOver: Modal de Vitória ou Derrota (Time Attack)
+// Componente GameOver: Modal de Vitória ou Derrota com i18n e Compartilhamento
 import React, { useEffect, useRef, useState } from 'react';
 import { formatTime } from '../utils/storage';
 import { GameMode } from '../types/game';
+import { Language, DICTIONARY } from '../utils/i18n';
 
 interface GameOverProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface GameOverProps {
   maxCombo: number;
   gameMode: GameMode;
   isNewRecord: boolean;
+  language: Language;
   onRestart: () => void;
   onChangeDifficulty: () => void;
   onOpenPokedex?: () => void;
@@ -37,10 +39,12 @@ export const GameOver: React.FC<GameOverProps> = ({
   maxCombo,
   gameMode,
   isNewRecord,
+  language,
   onRestart,
   onChangeDifficulty,
   onOpenPokedex,
 }) => {
+  const t = DICTIONARY[language];
   const restartButtonRef = useRef<HTMLButtonElement | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
 
@@ -62,20 +66,23 @@ export const GameOver: React.FC<GameOverProps> = ({
   // Compartilhamento com Web Share API ou cópia para Clipboard
   const handleShare = async () => {
     const modeName =
-      gameMode === 'timeAttack' ? 'Time Attack ⚡' : gameMode === 'memoryFlash' ? 'Memory Flash 👁️' : 'Clássico';
-    const text = `🎮 PIXEL MEMORY — Vitória Pokémon! 🏆\n⚡ Modo: ${modeName}\n⭐ Pontuação: ${score} PTS\n🎯 Jogadas: ${moves} | ⏱️ Tempo: ${formatTime(timeSeconds)}\n🔥 Max Combo: ${maxCombo > 1 ? `${maxCombo}x` : '1x'}\n\nConsegue bater meu recorde?`;
+      gameMode === 'timeAttack'
+        ? `${t.timeAttackMode} ⚡`
+        : gameMode === 'memoryFlash'
+        ? `${t.memoryFlashMode} 👁️`
+        : t.classicMode;
+
+    const text = `${t.shareTitle}\n⚡ ${t.gameModeLabel}: ${modeName}\n⭐ ${t.score}: ${score} PTS\n🎯 ${t.moves}: ${moves} | ⏱️ ${t.time}: ${formatTime(timeSeconds)}\n🔥 ${t.maxCombo}: ${maxCombo > 1 ? `${maxCombo}x` : '1x'}\n\n${t.shareBeatRecord}`;
 
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({
-          title: 'Pixel Memory — Meu Resultado!',
+          title: 'Pixel Memory',
           text,
           url: window.location.href,
         });
         return;
-      } catch {
-        // Se usuário cancelou ou não suportou, fallback para copiar
-      }
+      } catch {}
     }
 
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
@@ -98,7 +105,7 @@ export const GameOver: React.FC<GameOverProps> = ({
       aria-labelledby="gameover-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1F1D2B]/85 overflow-hidden"
     >
-      {/* Confetes apenas em caso de vitória */}
+      {/* Confetes em caso de vitória */}
       {isWon &&
         CONFETTI_PIECES.map((piece) => (
           <span
@@ -133,12 +140,10 @@ export const GameOver: React.FC<GameOverProps> = ({
         {/* Mensagem Principal */}
         <div>
           <h2 id="gameover-title" className="text-sm sm:text-base font-bold text-[#1F1D2B] uppercase">
-            {isWon ? 'MESTRE POKÉMON!' : 'TEMPO ESGOTADO!'}
+            {isWon ? t.pokemonMaster : t.timeOutTitle}
           </h2>
           <p className="text-[8px] text-[#1F1D2B]/80 mt-1 uppercase">
-            {isWon
-              ? 'Você capturou todos os pares!'
-              : 'O tempo acabou antes de capturar todos!'}
+            {isWon ? t.allPairsCaught : t.timeOutDesc}
           </p>
         </div>
 
@@ -148,32 +153,32 @@ export const GameOver: React.FC<GameOverProps> = ({
             role="status"
             className="px-2 py-1 bg-[#F2C230] text-[#1F1D2B] border-2 border-[#1F1D2B] text-[8px] font-bold uppercase shadow-[2px_2px_0px_0px_#1F1D2B]"
           >
-            ★ NOVO RECORDE ★
+            {t.newRecordBadge}
           </div>
         )}
 
         {/* Estatísticas Finais */}
         <div className="grid grid-cols-2 gap-2 bg-[#E6E1D6] p-2.5 border-2 border-[#1F1D2B] text-left">
           <div className="flex flex-col">
-            <span className="text-[7px] text-[#1F1D2B]/70 uppercase font-bold">PONTUAÇÃO</span>
+            <span className="text-[7px] text-[#1F1D2B]/70 uppercase font-bold">{t.score}</span>
             <span className="text-base font-bold text-[#3B5BA9]">{score} PTS</span>
           </div>
 
           <div className="flex flex-col border-l-2 border-[#1F1D2B] pl-2">
-            <span className="text-[7px] text-[#1F1D2B]/70 uppercase font-bold">MAX COMBO</span>
+            <span className="text-[7px] text-[#1F1D2B]/70 uppercase font-bold">{t.maxCombo}</span>
             <span className="text-base font-bold text-[#D63C3C]">
               {maxCombo > 1 ? `${maxCombo}x` : '—'}
             </span>
           </div>
 
           <div className="flex flex-col pt-1 border-t-2 border-[#1F1D2B]">
-            <span className="text-[7px] text-[#1F1D2B]/70 uppercase font-bold">JOGADAS</span>
+            <span className="text-[7px] text-[#1F1D2B]/70 uppercase font-bold">{t.moves}</span>
             <span className="text-sm font-bold text-[#1F1D2B]">{moves}</span>
           </div>
 
           <div className="flex flex-col pt-1 border-t-2 border-l-2 border-[#1F1D2B] pl-2">
             <span className="text-[7px] text-[#1F1D2B]/70 uppercase font-bold">
-              {gameMode === 'timeAttack' ? 'TEMPO REST.' : 'TEMPO'}
+              {gameMode === 'timeAttack' ? t.timeRemaining : t.time}
             </span>
             <span className="text-sm font-bold text-[#1F1D2B]">
               {formatTime(timeSeconds)}
@@ -190,16 +195,7 @@ export const GameOver: React.FC<GameOverProps> = ({
             className="w-full min-h-[48px] px-3 py-3 bg-[#D63C3C] text-[#F8F8F0] border-4 border-[#1F1D2B] shadow-[4px_4px_0px_0px_#1F1D2B] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none text-[10px] font-bold uppercase flex items-center justify-center gap-2 cursor-pointer transition-transform rounded-none touch-manipulation focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#F2C230]"
           >
             <span aria-hidden="true" className="text-xs">↺</span>
-            TENTAR DE NOVO
-          </button>
-
-          <button
-            type="button"
-            onClick={onChangeDifficulty}
-            className="w-full min-h-[48px] px-3 py-3 bg-[#3B5BA9] text-[#F8F8F0] border-4 border-[#1F1D2B] shadow-[4px_4px_0px_0px_#1F1D2B] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none text-[9px] font-bold uppercase flex items-center justify-center gap-1.5 cursor-pointer transition-transform rounded-none touch-manipulation focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#F2C230]"
-          >
-            <span aria-hidden="true" className="text-xs">≡</span>
-            MENU PRINCIPAL
+            {isWon ? t.playAgain : t.tryAgain}
           </button>
 
           {isWon && (
@@ -208,9 +204,18 @@ export const GameOver: React.FC<GameOverProps> = ({
               onClick={handleShare}
               className="w-full min-h-[44px] px-3 py-2 bg-[#25D366] text-[#1F1D2B] border-3 border-[#1F1D2B] shadow-[3px_3px_0px_0px_#1F1D2B] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none text-[9px] font-bold uppercase flex items-center justify-center gap-1.5 cursor-pointer rounded-none touch-manipulation"
             >
-              <span>{copied ? '✓ COPIADO!' : '📤 COMPARTILHAR VITÓRIA'}</span>
+              <span>{copied ? t.copied : t.shareVictory}</span>
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={onChangeDifficulty}
+            className="w-full min-h-[48px] px-3 py-3 bg-[#3B5BA9] text-[#F8F8F0] border-4 border-[#1F1D2B] shadow-[4px_4px_0px_0px_#1F1D2B] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none text-[9px] font-bold uppercase flex items-center justify-center gap-1.5 cursor-pointer transition-transform rounded-none touch-manipulation focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#F2C230]"
+          >
+            <span aria-hidden="true" className="text-xs">≡</span>
+            {t.mainMenu}
+          </button>
 
           {onOpenPokedex && (
             <button
@@ -219,7 +224,7 @@ export const GameOver: React.FC<GameOverProps> = ({
               className="w-full min-h-[44px] px-3 py-2 bg-[#F2C230] text-[#1F1D2B] border-3 border-[#1F1D2B] shadow-[3px_3px_0px_0px_#1F1D2B] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none text-[9px] font-bold uppercase flex items-center justify-center gap-1.5 cursor-pointer rounded-none touch-manipulation"
             >
               <span aria-hidden="true">📖</span>
-              VER POKÉDEX
+              {t.viewPokedex}
             </button>
           )}
         </div>

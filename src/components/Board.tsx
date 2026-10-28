@@ -2,14 +2,16 @@
 import React, { memo } from 'react';
 import { CardItem } from '../types/game';
 import { Card } from './Card';
+import { Language } from '../utils/i18n';
 
 interface BoardProps {
   cards: CardItem[];
+  language?: Language;
   onCardClick: (card: CardItem) => void;
   disabled?: boolean;
 }
 
-export const Board = memo(function Board({ cards, onCardClick, disabled = false }: BoardProps) {
+export const Board = memo(function Board({ cards, language = 'pt', onCardClick, disabled = false }: BoardProps) {
   return (
     <section
       role="region"
@@ -22,6 +24,7 @@ export const Board = memo(function Board({ cards, onCardClick, disabled = false 
             key={card.id}
             card={card}
             index={index}
+            language={language}
             onClick={onCardClick}
             disabled={disabled}
           />

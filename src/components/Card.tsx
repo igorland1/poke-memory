@@ -2,18 +2,22 @@
 import React, { memo, useState } from 'react';
 import { CardItem } from '../types/game';
 import { TYPE_INFO } from '../data/cards';
+import { Language, DICTIONARY } from '../utils/i18n';
 
 interface CardProps {
   card: CardItem;
   index: number;
+  language?: Language;
   onClick: (card: CardItem) => void;
   disabled?: boolean;
 }
 
-export const Card = memo(function Card({ card, index, onClick, disabled = false }: CardProps) {
+export const Card = memo(function Card({ card, index, language = 'pt', onClick, disabled = false }: CardProps) {
   const isFaceUp = card.isFlipped || card.isMatched;
   const [imageError, setImageError] = useState<boolean>(false);
   const typeVisual = TYPE_INFO[card.type];
+  const t = DICTIONARY[language];
+  const translatedTypeName = t.types[card.type] ?? typeVisual?.name ?? card.type;
 
   // Acessibilidade completa para leitores de tela
   const getAriaLabel = () => {
@@ -105,7 +109,7 @@ export const Card = memo(function Card({ card, index, onClick, disabled = false 
           <div className="w-full flex items-center justify-between px-0.5 pt-0.5">
             {card.isWildcard ? (
               <span className="text-[6px] sm:text-[7px] font-bold px-1 py-0.2 bg-[#7D3B7D] text-[#F8F8F0] border border-[#1F1D2B] uppercase leading-tight truncate animate-pulse">
-                ✨ CORINGA
+                ✨ {t.wildcard}
               </span>
             ) : (
               <span
@@ -115,7 +119,7 @@ export const Card = memo(function Card({ card, index, onClick, disabled = false 
                 }}
                 className="text-[6px] sm:text-[7px] font-bold px-1 py-0.2 border border-[#1F1D2B] uppercase leading-tight truncate"
               >
-                {typeVisual?.badge} {typeVisual?.name}
+                {typeVisual?.badge} {translatedTypeName}
               </span>
             )}
 

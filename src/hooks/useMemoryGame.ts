@@ -67,6 +67,7 @@ export function useMemoryGame(
   const [pokedex, setPokedex] = useState<PokedexRecord>(() => loadPokedex());
   const [isNewRecord, setIsNewRecord] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(() => sounds.getMuted());
+  const [isBgmMuted, setIsBgmMuted] = useState<boolean>(() => sounds.getBgmMuted());
 
   const hasSavedRecordRef = useRef<boolean>(false);
 
@@ -338,6 +339,11 @@ export function useMemoryGame(
     setIsMuted(nextState);
   }, []);
 
+  const toggleBgm = useCallback(() => {
+    const nextState = sounds.toggleBgmMute();
+    setIsBgmMuted(nextState);
+  }, []);
+
   return {
     cards,
     moves,
@@ -360,7 +366,9 @@ export function useMemoryGame(
     isNewRecord,
     pokedex,
     isMuted,
+    isBgmMuted,
     toggleSound,
+    toggleBgm,
     handleCardClick,
     startNewGame,
     setDifficulty,

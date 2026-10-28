@@ -13,11 +13,32 @@ import { Board } from './components/Board';
 import { LoadingScreen } from './components/LoadingScreen';
 import { GameOver } from './components/GameOver';
 import { PokedexModal } from './components/PokedexModal';
+import { Language, DICTIONARY } from './utils/i18n';
+import { sounds } from './utils/sound';
 
 export default function App() {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isPokedexOpen, setIsPokedexOpen] = useState<boolean>(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
+
+  // Idioma (PT / EN) persistido
+  const [language, setLanguage] = useState<Language>(() => {
+    try {
+      const saved = localStorage.getItem('poke_memory_lang');
+      if (saved === 'en' || saved === 'pt') return saved;
+    } catch {}
+    return 'pt';
+  });
+
+  const toggleLanguage = () => {
+    const nextLang: Language = language === 'pt' ? 'en' : 'pt';
+    setLanguage(nextLang);
+    try {
+      localStorage.setItem('poke_memory_lang', nextLang);
+    } catch {}
+  };
+
+  const t = DICTIONARY[language];
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -60,7 +81,9 @@ export default function App() {
     isNewRecord,
     pokedex,
     isMuted,
+    isBgmMuted,
     toggleSound,
+    toggleBgm,
     handleCardClick,
     startNewGame,
     setDifficulty,
@@ -71,6 +94,8 @@ export default function App() {
   const handleStartGame = useCallback(() => {
     startNewGame(difficulty, gameMode, generation);
     setIsPlaying(true);
+    // Inicia a música de fundo Chiptune ao começar a partida
+    sounds.startBgm();
   }, [startNewGame, difficulty, gameMode, generation]);
 
   const handleOpenDifficultySelector = useCallback(() => {
@@ -85,15 +110,32 @@ export default function App() {
     setIsPokedexOpen(false);
   }, []);
 
-  const currentGenBadge = GENERATION_CONFIGS[generation]?.badge ?? 'EDIÇÃO KANTO';
+  const currentGenBadge =
+    generation === 'kanto'
+      ? t.editionKanto
+      : generation === 'johto'
+      ? t.editionJohto
+      : t.editionHoenn;
+
   const totalCaptured = Object.keys(pokedex).length;
 
   return (
     <main className="min-h-screen bg-[#E6E1D6] text-[#1F1D2B] flex flex-col justify-between items-center p-3 sm:p-4 selection:bg-[#F2C230] selection:text-[#1F1D2B]">
       {/* Container vertical centralizado para celular */}
       <div className="w-full max-w-sm sm:max-w-md flex flex-col gap-2.5 my-auto">
-        {/* Cabeçalho 8-bit */}
-        <header className="text-center pt-1">
+        {/* Cabeçalho 8-bit com Seletor de Idioma */}
+        <header className="text-center pt-1 relative">
+          {/* Botão de Troca de Idioma PT / EN */}
+          <button
+            type="button"
+            onClick={toggleLanguage}
+            aria-label="Toggle language"
+            title="Alternar idioma (PT / EN)"
+            className="absolute top-1 right-0 min-w-[36px] min-h-[30px] px-1.5 py-0.5 bg-[#F8F8F0] text-[#1F1D2B] border-2 border-[#1F1D2B] shadow-[2px_2px_0px_0px_#1F1D2B] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none font-bold text-[8px] uppercase cursor-pointer touch-manipulation"
+          >
+            {language === 'pt' ? '🇧🇷 PT' : '🇺🇸 EN'}
+          </button>
+
           <div className="inline-block px-2.5 py-1 bg-[#D63C3C] text-[#F8F8F0] border-2 border-[#1F1D2B] shadow-[2px_2px_0px_0px_#1F1D2B] text-[8px] uppercase font-bold mb-2">
             {currentGenBadge}
           </div>
@@ -115,6 +157,7 @@ export default function App() {
             onOpenPokedex={handleOpenPokedex}
             bestScores={bestScores}
             capturedCount={totalCaptured}
+            language={language}
           />
         ) : (
           <>
@@ -129,7 +172,10 @@ export default function App() {
               gameMode={gameMode}
               bestScore={currentBestScore}
               isMuted={isMuted}
+              isBgmMuted={isBgmMuted}
+              language={language}
               onToggleSound={toggleSound}
+              onToggleBgm={toggleBgm}
               onRestart={() => startNewGame(difficulty, gameMode, generation)}
               onChangeDifficulty={handleOpenDifficultySelector}
               onOpenPokedex={handleOpenPokedex}
@@ -137,10 +183,11 @@ export default function App() {
 
             {/* Enquanto os sprites estiverem sendo pré-carregados, exibe o LoadingScreen 8-bit */}
             {isPreloading ? (
-              <LoadingScreen />
+              <LoadingScreen language={language} />
             ) : (
               <Board
                 cards={cards}
+                language={language}
                 onCardClick={handleCardClick}
                 disabled={isChecking || isGameOver}
               />
@@ -151,14 +198,14 @@ export default function App() {
 
       {/* Rodapé 8-bit com atalho da Pokédex e botão de instalação PWA */}
       <footer className="text-center text-[7px] sm:text-[8px] text-[#1F1D2B]/70 uppercase py-2 flex flex-wrap items-center justify-center gap-2">
-        <span>PROJETO PORTFÓLIO • REACT + TAILWIND</span>
+        <span>{t.footerText}</span>
         <span>•</span>
         <button
           type="button"
           onClick={handleOpenPokedex}
           className="text-[#3B5BA9] font-bold underline cursor-pointer hover:text-[#D63C3C]"
         >
-          POKÉDEX ({totalCaptured}/60)
+          {t.pokedexShortcut} ({totalCaptured}/60)
         </button>
         {installPrompt && (
           <>
@@ -168,7 +215,7 @@ export default function App() {
               onClick={handleInstallApp}
               className="text-[#D63C3C] font-bold underline cursor-pointer hover:text-[#3B5BA9]"
             >
-              📲 INSTALAR APP
+              📲 {t.installApp}
             </button>
           </>
         )}
@@ -185,6 +232,7 @@ export default function App() {
         maxCombo={maxCombo}
         gameMode={gameMode}
         isNewRecord={isNewRecord}
+        language={language}
         onRestart={() => startNewGame(difficulty, gameMode, generation)}
         onChangeDifficulty={handleOpenDifficultySelector}
         onOpenPokedex={handleOpenPokedex}
@@ -195,6 +243,7 @@ export default function App() {
         isOpen={isPokedexOpen}
         onClose={handleClosePokedex}
         pokedex={pokedex}
+        language={language}
       />
     </main>
   );
